@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asset Dashboard · Smart Rental Tracking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-title">
+    <span class="hazard-chip" aria-hidden="true"></span>
+    <div>
+      <h1>ASSET DASHBOARD</h1>
+      <p class="subtitle">Smart Rental Tracking &middot; live fleet status</p>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <span id="clock" class="clock"></span>
+    <button id="btn-simulate" class="btn btn-ghost">Simulate Day</button>
+    <button id="btn-checkin" class="btn btn-primary">+ Check In Equipment</button>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- KPI strip -->
+  <section class="kpi-strip" id="kpi-strip" aria-label="Fleet summary">
+    <div class="kpi-card">
+      <span class="kpi-value" id="kpi-total">–</span>
+      <span class="kpi-label">Total Assets</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-value" id="kpi-active">–</span>
+      <span class="kpi-label">Active</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-value" id="kpi-available">–</span>
+      <span class="kpi-label">Available</span>
+    </div>
+    <div class="kpi-card kpi-danger">
+      <span class="kpi-value" id="kpi-overdue">–</span>
+      <span class="kpi-label">Overdue</span>
+    </div>
+    <div class="kpi-card kpi-warn">
+      <span class="kpi-value" id="kpi-duesoon">–</span>
+      <span class="kpi-label">Due Soon</span>
+    </div>
+    <div class="kpi-card kpi-warn">
+      <span class="kpi-value" id="kpi-anomalies">–</span>
+      <span class="kpi-label">Flagged</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-value" id="kpi-utilization">–</span>
+      <span class="kpi-label">Fleet Utilization</span>
+    </div>
+  </section>
+
+  <!-- Alerts + Anomalies -->
+  <section class="panels">
+    <div class="panel">
+      <div class="panel-header hazard-header">
+        <h2>Overdue &amp; Due Soon</h2>
+        <span class="panel-count" id="alerts-count">0</span>
+      </div>
+      <div class="panel-body" id="alerts-list">
+        <p class="empty-state">No active rentals need attention.</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header amber-header">
+        <h2>Anomalies Flagged</h2>
+        <span class="panel-count" id="anomalies-count">0</span>
+      </div>
+      <div class="panel-body" id="anomalies-list">
+        <p class="empty-state">No anomalies detected.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Equipment table -->
+  <section class="panel table-panel">
+    <div class="panel-header">
+      <h2>Fleet Status</h2>
+      <div class="table-controls">
+        <input type="search" id="search-input" placeholder="Search ID, type, site, operator…">
+        <select id="filter-status">
+          <option value="">All statuses</option>
+          <option value="Active">Active</option>
+          <option value="Available">Available</option>
+        </select>
+        <select id="filter-type">
+          <option value="">All types</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table id="equipment-table">
+        <thead>
+          <tr>
+            <th>Equipment</th>
+            <th>Type</th>
+            <th>Site</th>
+            <th>Status</th>
+            <th>Check-In</th>
+            <th>Due / Check-Out</th>
+            <th>Engine hrs/day</th>
+            <th>Idle hrs/day</th>
+            <th>Operator</th>
+            <th>Flags</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="equipment-tbody">
+          <tr><td colspan="11" class="empty-state">Loading fleet data…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<!-- Check-in modal -->
+<div class="modal-backdrop" id="checkin-backdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Check In Equipment</h2>
+      <button class="modal-close" id="checkin-close" aria-label="Close">&times;</button>
+    </div>
+    <form id="checkin-form">
+      <label>Equipment ID
+        <input type="text" name="equipment_id" placeholder="EQX1050" required>
+      </label>
+      <label>Equipment Type <span class="hint">(only needed for a new ID)</span>
+        <select name="equipment_type">
+          <option value="">— existing equipment —</option>
+          <option>Excavator</option>
+          <option>Crane</option>
+          <option>Bulldozer</option>
+          <option>Grader</option>
+        </select>
+      </label>
+      <label>Site ID
+        <input type="text" name="site_id" placeholder="S001" required>
+      </label>
+      <label>Operator ID
+        <input type="text" name="operator_id" placeholder="OP101" required>
+      </label>
+      <label>Planned Rental Days
+        <input type="number" name="planned_rental_days" min="1" value="14" required>
+      </label>
+      <p class="form-error" id="checkin-error"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="checkin-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary">Check In</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Detail drawer -->
+<div class="modal-backdrop" id="detail-backdrop">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h2 id="detail-title">Equipment</h2>
+      <button class="modal-close" id="detail-close" aria-label="Close">&times;</button>
+    </div>
+    <div id="detail-body" class="detail-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
